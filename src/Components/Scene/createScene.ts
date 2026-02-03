@@ -23,8 +23,17 @@ import scaleInView from './utils/scaleInView';
 import { loadSTL, loadDAE } from './utils/loadMesh';
 import setRobotRotation from './utils/setRobotRotation';
 import * as axes from '../../constants/axes';
+import { loadPointCloudA, loadPointCloudB, scale } from './loadPointCloud';
 
-const URDF_FILE_PATH = '../urdf/myRobot/urdf/robot.urdf';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
+
+// 定义全局变量
+let transformControls: TransformControls;
+let baseFrameAnchor: THREE.Object3D;
+
+const URDF_FILE_PATH = '../urdf/robot/urdf/robot.urdf';
+const POINT_CLOUD_URLA = '../pointcloud/pointcloudA1769508415.txt';
+const POINT_CLOUD_URLB = '../pointcloud/pointcloudB1769508415.txt';
 
 /*
 
@@ -115,6 +124,12 @@ function init(canvasEl: HTMLCanvasElement): void {
 
   manager = new LoadingManager();
   loader = new URDFLoader(manager);
+
+  controls = new OrbitControls(camera, renderer.domElement);
+
+  // 2. 调用你的控制函数
+  // initTransformControls();
+
   loadRobot();
 
   // *** Resize the contents of the canvas on window resize.
@@ -122,6 +137,45 @@ function init(canvasEl: HTMLCanvasElement): void {
   window.addEventListener('resize', onResize);
 }
 
+
+function initTransformControls() {
+  // 1. 创建一个空物体作为“基坐标系”
+  // 虽然是“空”的，但为了可见，我们可以放一个小的 AxesHelper
+  baseFrameAnchor = new THREE.Object3D();
+  const axesHelper = new THREE.AxesHelper(0.5); // 0.5米长的轴
+  baseFrameAnchor.add(axesHelper);
+  scene.add(baseFrameAnchor);
+
+  // 2. 初始化变换控制器
+  transformControls = new TransformControls(camera, renderer.domElement);
+
+  // 重点：当拖拽物体时，必须禁用 OrbitControls，否则两者会冲突
+  transformControls.addEventListener('dragging-changed', (event) => {
+    controls.enabled = !event.value;
+  });
+
+  // 3. 监听变化并打印坐标/旋转
+  transformControls.addEventListener('change', () => {
+    const pos = baseFrameAnchor.position;
+    const rot = baseFrameAnchor.rotation;
+
+    // 你可以在这里更新 UI 或 Stores
+    console.log(`基坐标系位置: x:${pos.x.toFixed(3)}, y:${pos.y.toFixed(3)}, z:${pos.z.toFixed(3)}`);
+    console.log(`基坐标系旋转 (Rad): x:${rot.x.toFixed(3)}, y:${rot.y.toFixed(3)}, z:${rot.z.toFixed(3)}`);
+  });
+
+  // 4. 将控制器绑定到锚点上
+  transformControls.attach(baseFrameAnchor);
+  scene.add(transformControls);
+
+  // 5. 快捷键切换模式 (可选)
+  window.addEventListener('keydown', (event) => {
+    switch (event.key) {
+      case 'g': transformControls.setMode('translate'); break; // 移动
+      case 'r': transformControls.setMode('rotate'); break;    // 旋转
+    }
+  });
+}
 // *** Render the scene onto the screen ***
 
 function render(): void {
@@ -179,10 +233,18 @@ function loadRobot(url = URDF_FILE_PATH, files?: Record<string, File>): void {
 
     selectedUpAxisStore.update((): string => axes.Y);
 
+    robot.scale.set(1 / scale, 1 / scale, 1 / scale);
+
     // Updates the global transform of the object and its descendants.
     robot.updateMatrixWorld(true);
 
     scene.add(robot);
+
+    box = new THREE.Box3().setFromObject(robot);
+
+    loadPointCloudA(scene, POINT_CLOUD_URLA);
+    loadPointCloudB(scene, POINT_CLOUD_URLB);
+
   };
 }
 
@@ -289,52 +351,6 @@ function onResize(): void {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
 }
-
-// 读取点云数据
-async function loadPointCloud(filePath: string): Promise<THREE.BufferGeometry> {
-  const response = await fetch(filePath);
-  const text = await response.text();
-  const points: number[] = [];
-
-  // 解析每一行数据
-  text.split('\n').forEach((line) => {
-    const [x, y, z] = line.split(',').map(Number);
-    if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
-      points.push(x, y, z);
-    }
-  });
-
-  // 创建点云几何体
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
-  return geometry;
-}
-
-// 渲染点云
-async function renderPointCloud(container: HTMLElement, filePath: string) {
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-  const renderer = new THREE.WebGLRenderer();
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  container.appendChild(renderer.domElement);
-
-  // 加载点云数据
-  const geometry = await loadPointCloud(filePath);
-  const material = new THREE.PointsMaterial({ color: 0x00ff00, size: 0.05 });
-  const points = new THREE.Points(geometry, material);
-  scene.add(points);
-
-  // 设置相机位置
-  camera.position.z = 5;
-
-  // 渲染循环
-  function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
-  }
-  animate();
-}
-
 
 export default createScene;
 export { rotateJoints, loadRobot, rotateRobotOnUpAxisChange };
