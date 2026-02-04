@@ -51,7 +51,7 @@ export function loadPointCloudA(robot: THREE.Object3D, url: string): void {
         console.warn('未能在模型中找到 base_frameA_link，点云将默认加载至机器人原点。');
         targetFrame = robot; // 回退方案：找不到就放原点
     }
-
+    
     if (targetFrame) {
         targetFrame.add(new AxesHelper(0.5));
     }

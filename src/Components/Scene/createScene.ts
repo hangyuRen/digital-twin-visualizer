@@ -31,7 +31,7 @@ import { TransformControls } from 'three/examples/jsm/controls/TransformControls
 let transformControls: TransformControls;
 let baseFrameAnchor: THREE.Object3D;
 
-const URDF_FILE_PATH = '../urdf/robot/urdf/robot.urdf';
+const URDF_FILE_PATH = '../urdf/myRobot/urdf/robot.urdf';
 const POINT_CLOUD_URLA = '../pointcloud/pointcloudA1769508415.txt';
 const POINT_CLOUD_URLB = '../pointcloud/pointcloudB1769508415.txt';
 
@@ -267,25 +267,32 @@ function removeOldRobotFromScene(): void {
 // }
 
 function rotateJoints(jointInfos: JointInfo[]): void {
-  if (!robot || !Array.isArray(jointInfos)) return;
+if (!robot || !Array.isArray(jointInfos)) return;
 
   const { joints } = robot;
-  // 把接收到的数组转成按 name 的 map（如果数组长度和顺序不保证）
-  const map = Object.create(null);
-  jointInfos.forEach(info => {
-    if (info && info.name) map[info.name] = info;
-  });
 
-  Object.keys(joints).forEach((jointName) => {
-    const info = map[jointName];
-    if (!info || typeof info.degree !== 'number') return;
-    joints[jointName].setJointValue(MathUtils.degToRad(info.degree));
+  jointInfos.forEach((info) => {
+    const jointName = info.name;
+    const jointObject = joints[jointName];
+
+    if (jointObject) {
+      // 转换角度为弧度
+      const rad = MathUtils.degToRad(info.degree);
+      
+      jointObject.setJointValue(rad);
+    } else {
+      console.warn(`模型中未找到关节: ${jointName}`);
+    }
   });
 }
 
+
 function updateJointInfos(): JointInfo[] {
-  return Object.keys(robot.joints).map((jointName: string) => {
-    const { lower, upper } = robot.joints[jointName].limit;
+  return Object.keys(robot.joints)
+    .filter((jointName) => jointName !== 'base_jointA' && jointName !== 'base_jointB')
+    .map((jointName: string) => {
+    const limit = robot.joints[jointName].limit || { lower: 0, upper: 0 };
+    const { lower, upper } = limit;
     const lowerDegree = Number(MathUtils.radToDeg(Number(lower)).toFixed());
     const upperDegree = Number(MathUtils.radToDeg(Number(upper)).toFixed());
     const jointHasLimit = lowerDegree !== 0 || upperDegree !== 0;
@@ -298,6 +305,7 @@ function updateJointInfos(): JointInfo[] {
     };
   });
 }
+
 
 function rotateRobotOnUpAxisChange(selectedUpAxis: string): void {
   if (!robot || selectedUpAxis === '') return;

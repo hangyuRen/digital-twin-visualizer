@@ -23,10 +23,10 @@
     activeTab = activeTab === 'robot' ? 'monitor' : 'robot';
   };
 
-  // import WSClient from '../../wsClient/wsClient';
-  //
-  // let wsClient = new WSClient('ws://127.0.0.1:8080');
-  // wsClient.start();
+   import WSClient from '../../wsClient/wsClient';
+  
+   let wsClient = new WSClient('ws://127.0.0.1:8080');
+   wsClient.start();
 </script>
 
 <!--
