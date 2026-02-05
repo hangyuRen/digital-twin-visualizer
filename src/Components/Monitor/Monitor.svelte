@@ -37,9 +37,29 @@
     <h2 class="text-2xl font-bold text-center flex-none">焊接机器人监控面板</h2>
 
     <div class="grid grid-cols-3 gap-4 h-[45%] flex-none">
-        <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">HK Camera 1</div>
-        <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">HK Camera 2</div>
-        <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">TP-Link Camera</div>
+        <!-- <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">HK Camera 1</div>
+        <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">HK Camera 2</div> -->
+        <!-- <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">TP-Link Camera</div> -->
+        <!-- 海康摄像头1 -->
+        <iframe
+            src="http://localhost:8889/cam1"
+            class="bg-black rounded-xl border-2 border-gray-700 w-full h-full"
+            allow="autoplay; fullscreen"
+        ></iframe>
+
+        <!-- 海康摄像头2 -->
+        <iframe
+            src="http://localhost:8889/cam2"
+            class="bg-black rounded-xl border-2 border-gray-700 w-full h-full"
+            allow="autoplay; fullscreen"
+        ></iframe>
+
+        <!-- TPLINK -->
+        <iframe
+            src="http://localhost:8889/cam3"
+            class="bg-black rounded-xl border-2 border-gray-700 w-full h-full"
+            allow="autoplay; fullscreen"
+        ></iframe>
     </div>
 
     <div class="grid grid-cols-2 gap-4 h-[45%] flex-none">

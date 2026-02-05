@@ -41,8 +41,8 @@
                     y: {
                         type: 'linear',
                         min: 0,
-                        max: 5,
-                        ticks: {stepSize: 1},
+                        max: 1,
+                        ticks: {stepSize: 0.2},
                         beginAtZero: true,
                         title: { display: true, text: '电流 (A)' }
                     },
