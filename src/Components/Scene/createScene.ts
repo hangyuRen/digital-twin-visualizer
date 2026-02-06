@@ -32,8 +32,8 @@ let transformControls: TransformControls;
 let baseFrameAnchor: THREE.Object3D;
 
 const URDF_FILE_PATH = '../urdf/myRobot/urdf/robot.urdf';
-const POINT_CLOUD_URLA = '../pointcloud/pointcloudA1769508415.txt';
-const POINT_CLOUD_URLB = '../pointcloud/pointcloudB1769508415.txt';
+const POINT_CLOUD_URLA = '../pointcloud/pointcloudA1770200071.txt';
+const POINT_CLOUD_URLB = '../pointcloud/pointcloudB1770200071.txt';
 
 /*
 
