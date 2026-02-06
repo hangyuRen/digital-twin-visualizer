@@ -4,6 +4,8 @@
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
   export let title: string = '点云';
+  // 是否折叠（支持父组件 bind:collapsed 双向绑定）
+  export let collapsed: boolean = false;
 
   // ====== DOM refs ======
   let viewerEl: HTMLDivElement;
@@ -143,6 +145,17 @@
     renderer.setSize(width, height);
     if (solidPointMaterial.uniforms?.scale) {
       solidPointMaterial.uniforms.scale.value = height / 2.0;
+    }
+  }
+
+  function toggleCollapsed(e?: MouseEvent) {
+    // 仅作用于面板本身，避免冒泡影响底层 three 场景
+    if (e) e.stopPropagation();
+    collapsed = !collapsed;
+
+    // 展开后下一帧触发一次 resize，保证 canvas 正确填充
+    if (!collapsed) {
+      setTimeout(() => onResize(), 0);
     }
   }
 
@@ -428,8 +441,17 @@
   });
 </script>
 
-<div class="pc-panel">
-  <div class="pc-header">{title}</div>
+<div class="pc-panel" class:collapsed>
+  <div class="pc-header">
+    <div class="pc-title">{title}</div>
+    <button class="pc-collapse" on:click={toggleCollapsed} aria-label={collapsed ? '展开' : '折叠'}>
+      {#if collapsed}
+        展开
+      {:else}
+        折叠
+      {/if}
+    </button>
+  </div>
 
   <div class="pc-toolbar">
     <div class="input-group">
@@ -479,6 +501,35 @@
     background: rgba(40, 40, 40, 0.85);
     border-bottom: 1px solid rgba(255,255,255,0.08);
     user-select: none;
+  }
+
+  .pc-title {
+    font-size: 13px;
+    color: #fff;
+  }
+
+  .pc-collapse {
+    margin-left: auto;
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: #ddd;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    cursor: pointer;
+  }
+  .pc-collapse:hover {
+    background: rgba(255,255,255,0.12);
+  }
+
+  /* 折叠态：只保留标题栏，不占用大块遮挡区域 */
+  .pc-panel.collapsed {
+    grid-template-rows: 34px 0 0;
+  }
+  .pc-panel.collapsed .pc-toolbar,
+  .pc-panel.collapsed .pc-viewer {
+    display: none;
   }
 
   .pc-toolbar {

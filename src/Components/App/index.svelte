@@ -8,6 +8,10 @@
   // 控制界面显示的变量
   let activeTab: 'robot' | 'monitor' = 'robot';
 
+  // 点云面板折叠状态
+  let leftCollapsed = false;
+  let rightCollapsed = false;
+
   let jointInfos: JointInfo[] = [];
   jointInfosStore.subscribe((value: JointInfo[]): void => {
     jointInfos = value;
@@ -51,13 +55,13 @@
       <Scene {jointInfos} {selectedUpAxis} />
 
    <!-- 左侧点云展示框 -->
-  <div class="pc-slot pc-left">
-    <PointCloudPanel title="左侧管道点云" />
+  <div class="pc-slot pc-left" class:collapsed={leftCollapsed}>
+    <PointCloudPanel title="左侧管道点云" bind:collapsed={leftCollapsed} />
   </div>
 
   <!-- 右侧点云展示框 -->
-  <div class="pc-slot pc-right">
-    <PointCloudPanel title="右侧管道点云" />
+  <div class="pc-slot pc-right" class:collapsed={rightCollapsed}>
+    <PointCloudPanel title="右侧管道点云" bind:collapsed={rightCollapsed} />
   </div>
 
     </div>
@@ -98,7 +102,8 @@
     top: 14px;
     left: 14px;
     width: min(38vw, 520px);
-    height: min(34vh, 320px);
+    /* 拉长点云展示区域（红框下半部分会跟随变大），同时不与上方控件区重叠 */
+    height: min(52vh, 520px);
     min-width: 320px;
     min-height: 240px;
   }
@@ -108,7 +113,7 @@
     top: 78px;
     right: 14px;
     width: min(30vw, 420px);
-    height: min(28vh, 260px);
+    height: min(46vh, 460px);
     min-width: 280px;
     min-height: 220px;
   }
@@ -116,12 +121,18 @@
   @media (max-width: 980px) {
     .pc-left {
       width: 360px;
-      height: 260px;
+      height: 360px;
     }
     .pc-right {
       top: 360px;
       width: 360px;
-      height: 260px;
+      height: 360px;
     }
+  }
+
+  /* 折叠时只保留标题栏高度，避免占用遮挡 */
+  .pc-slot.collapsed {
+    height: 34px !important;
+    min-height: 34px !important;
   }
 </style>
