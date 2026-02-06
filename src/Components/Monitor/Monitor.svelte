@@ -107,7 +107,7 @@ async function uploadFrame(blob) {
             allow="autoplay; fullscreen"
         ></iframe>
 
-    <!-- 海康摄像头2 -->
+        <!-- 海康摄像头2 -->
         <iframe
             src="http://localhost:8889/cam2"
             class="bg-black rounded-xl border-2 border-gray-700 w-full h-full"
