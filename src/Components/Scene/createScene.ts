@@ -15,7 +15,6 @@ import {
 import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import URDFLoader, { URDFRobot } from 'urdf-loader';
-
 import { jointInfosStore, selectedUpAxisStore } from '../../stores';
 import type { JointInfo } from '../../types';
 import getFileNameFromPath from './utils/getFileNameFromPath';
