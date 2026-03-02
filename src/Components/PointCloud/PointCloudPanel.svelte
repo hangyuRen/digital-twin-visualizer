@@ -189,8 +189,9 @@
   function parseCloud(text: string) {
     rawCloudData = [];
     const lines = text.split('\n');
-
+    let count = 0;
     for (let line of lines) {
+      if (count++ % 2 == 0) continue;
       line = line.trim();
       if (!line) continue;
       const parts = line.split(/[,\s]+/);

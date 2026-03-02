@@ -5,6 +5,12 @@
   import Scene from "../Scene/index.svelte";
   import Monitor from "../Monitor/Monitor.svelte";
   import PointCloudPanel from '../PointCloud/PointCloudPanel.svelte';
+  import WSClient from '../../wsClient/wsClient';
+  import { isRobotConnected } from '../../stores';
+  import CurrentWSClient from "../../wsClient/CurrentWSClient";
+
+  export let chartA: any = null;
+  export let chartB: any = null;
 
   // 控制界面显示的变量
   let activeTab: 'robot' | 'monitor' = 'robot';
@@ -28,10 +34,25 @@
     activeTab = activeTab === 'robot' ? 'monitor' : 'robot';
   };
 
-   import WSClient from '../../wsClient/wsClient';
-  
-   let wsClient = new WSClient('ws://127.0.0.1:8080');
-   wsClient.start();
+  let wsClient;
+  let currentWSClient;
+
+  // 只有当 store 变为 true 时才初始化并启动
+  $: if ($isRobotConnected) {
+    if (!wsClient) {
+      wsClient = new WSClient('ws://127.0.0.1:8080');
+      wsClient.start();
+      console.log("关节角度 WebSocket 已启动");
+    }
+
+    if (!currentWSClient) {
+      currentWSClient = new CurrentWSClient('ws://127.0.0.1:8081', (armA, armB) => {
+        if (chartA) chartA.updateData(armA);
+        if (chartB) chartB.updateData(armB);
+      });
+      currentWSClient.start()
+    }
+  }
 </script>
 
 <!--
@@ -65,7 +86,7 @@
     </div>
     </div>
   {:else}
-    <Monitor />
+    <Monitor bind:chartA bind:chartB/>
   {/if}
 </div>
 
