@@ -125,6 +125,28 @@
         }
     }
 
+    async function startWeld() {
+        try {
+            const res = await fetch("http://localhost:8082/weld", {
+                method: "GET"
+            });
+
+            const data = await res.json();
+
+            if (data.status === "fail") {
+                toastMessage = "焊接失败: " + data.message;
+            } else {
+                toastMessage = "焊接成功: " + data.message;
+            }
+
+        } catch (e) {
+            toastMessage = "焊接失败: 无法访问后端服务器";
+        } finally {
+            showToast = true;
+            setTimeout(() => showToast = false, 3000);
+        }
+    }
+
     onMount(async () => {
             // 等待 Svelte 完成 DOM 渲染和可能的切换动画
             await tick();
@@ -238,7 +260,9 @@
                     点云获取
                 </button>
 
-                <button class="btn btn-accent btn-sm h-12">
+                <button 
+                    class="btn btn-accent btn-sm h-12"
+                    on:click={startWeld}>
                     一键焊接
                 </button>
             </div>
