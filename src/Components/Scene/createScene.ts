@@ -15,8 +15,8 @@ import {
 import * as THREE from "three";
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import URDFLoader, { URDFRobot } from 'urdf-loader';
-
-import { jointInfosStore, selectedUpAxisStore } from '../../stores';
+import { get } from 'svelte/store';
+import { jointInfosStore, selectedUpAxisStore, lastPointCloudData } from '../../stores';
 import type { JointInfo } from '../../types';
 import getFileNameFromPath from './utils/getFileNameFromPath';
 import scaleInView from './utils/scaleInView';
@@ -24,7 +24,6 @@ import { loadSTL, loadDAE } from './utils/loadMesh';
 import setRobotRotation from './utils/setRobotRotation';
 import * as axes from '../../constants/axes';
 import { loadPointCloudA, loadPointCloudB, scale } from './loadPointCloud';
-
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 // 定义全局变量
@@ -32,8 +31,12 @@ let transformControls: TransformControls;
 let baseFrameAnchor: THREE.Object3D;
 
 const URDF_FILE_PATH = '../urdf/myRobot/urdf/robot.urdf';
-const POINT_CLOUD_URLA = '../pointcloud/pointcloudA1770200071.txt';
-const POINT_CLOUD_URLB = '../pointcloud/pointcloudB1770200071.txt';
+// const POINT_CLOUD_URLA = '../pointcloud/pointcloudA1770200071.txt';
+// const POINT_CLOUD_URLB = '../pointcloud/pointcloudB1770200071.txt';
+let dynamicPointsA: THREE.Points | null = null;
+let dynamicPointsB: THREE.Points | null = null;
+let dynamicWeldA: THREE.Line | null = null;
+let dynamicWeldB: THREE.Line | null = null;
 
 /*
 
@@ -61,6 +64,76 @@ let loader: URDFLoader;
 let robot: URDFRobot;
 let controls: OrbitControls;
 let box: Box3;
+
+export function updateDynamicPointClouds(data: any): void {
+  if (!robot) {
+    lastPointCloudData.set(data);
+    return;
+  }
+
+  // 1. 获取目标挂载点 (基准坐标系)
+  const targetFrameA = robot.getObjectByName('base_frameA_link') || robot;
+  const targetFrameB = robot.getObjectByName('base_frameB_link') || robot;
+
+  // 清理旧的对象
+  const cleanup = (obj: THREE.Object3D | null, parent: THREE.Object3D) => {
+    if (obj) parent.remove(obj);
+  };
+  cleanup(dynamicPointsA, targetFrameA);
+  cleanup(dynamicWeldA, targetFrameA);
+  cleanup(dynamicPointsB, targetFrameB);
+  cleanup(dynamicWeldB, targetFrameB);
+
+  // 2. 创建并挂载 A 组 (白色)
+  dynamicPointsA = createGeometry(data.cloudA, 'Points', 0xffffff);
+  dynamicWeldA = createGeometry(data.weldA, 'Line', 0xff0000);
+  targetFrameA.add(dynamicPointsA);
+  targetFrameA.add(dynamicWeldA);
+
+  // 3. 创建并挂载 B 组 (蓝色)
+  dynamicPointsB = createGeometry(data.cloudB, 'Points', 0x00aaff);
+  dynamicWeldB = createGeometry(data.weldB, 'Line', 0x00ff00);
+  targetFrameB.add(dynamicPointsB);
+  targetFrameB.add(dynamicWeldB);
+
+  console.log(`点云已挂载至 A:[${targetFrameA.name}] 和 B:[${targetFrameB.name}]`);
+}
+
+/**
+ * 通用几何体创建工厂
+ */
+function createGeometry(pts: any[], type: 'Points' | 'Line', color: number): any {
+  const positions: number[] = [];
+
+  pts.forEach((p, index) => {
+    // 这里的抽样逻辑 (如 % 10) 可以根据性能需要添加
+    const x = parseFloat(p.x) / 1000;
+    const y = parseFloat(p.y) / 1000;
+    const z = parseFloat(p.z) / 1000;
+
+    if (!isNaN(x) && !isNaN(y) && !isNaN(z)) {
+      // 保持和你之前代码一致的坐标映射
+      positions.push(x, y, z);
+    }
+  });
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+  if (type === 'Points') {
+    const material = new THREE.PointsMaterial({ size: 0.002, color: color });
+    const points = new THREE.Points(geometry, material);
+    // 重置局部变换，确保相对于 targetFrame 的偏移为 0
+    points.position.set(0, 0, 0);
+    return points;
+  } else {
+    const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+    const line = new THREE.Line(geometry, material);
+    line.position.set(0, 0, 0);
+    return line;
+  }
+}
+
 
 function createScene(canvasEl: HTMLCanvasElement): void {
   init(canvasEl);
@@ -242,8 +315,14 @@ function loadRobot(url = URDF_FILE_PATH, files?: Record<string, File>): void {
 
     box = new THREE.Box3().setFromObject(robot);
 
-    loadPointCloudA(scene, POINT_CLOUD_URLA);
-    loadPointCloudB(scene, POINT_CLOUD_URLB);
+    const savedData = get(lastPointCloudData);
+    if (savedData) {
+      console.log("检测到持久化点云数据，正在自动重载...");
+      updateDynamicPointClouds(savedData);
+    }
+
+    // loadPointCloudA(scene, POINT_CLOUD_URLA);
+    // loadPointCloudB(scene, POINT_CLOUD_URLB);
 
   };
 }
@@ -278,7 +357,7 @@ if (!robot || !Array.isArray(jointInfos)) return;
     if (jointObject) {
       // 转换角度为弧度
       const rad = MathUtils.degToRad(info.degree);
-      
+
       jointObject.setJointValue(rad);
     } else {
       console.warn(`模型中未找到关节: ${jointName}`);

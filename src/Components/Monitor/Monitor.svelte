@@ -2,7 +2,235 @@
     import {onMount, onDestroy, tick} from 'svelte';
     import CurrentCharter from '../Current/CurrentCharter.svelte';
     import { startWebRTC } from "../Video/WebRTCPlayer";
-    import {isRobotConnected} from "../../stores";
+    import {isRobotConnected, lastPointCloudData} from "../../stores";
+    import * as THREE from "three";
+    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+    import { updateDynamicPointClouds } from '../Scene/createScene';
+
+    // 点云显示相关
+    let showPointViewer = false;
+    let viewerDiv;
+
+    let scene;
+    let camera;
+    let renderer;
+    let controls;
+
+    let cloudObj;
+    let weldLine;
+
+    let pointSize = 2;
+
+    async function showPointCloud() {
+
+        showPointViewer = true;
+
+        await tick();
+
+        initViewer();
+
+        const res = await fetch("http://localhost:8082/weld");
+        const data = await res.json();
+
+        renderPointCloud(
+            data.cloudA,
+            data.weldA,
+            data.cloudB,
+            data.weldB
+        );
+
+        // 1. 存入 Store 保持持久化
+        lastPointCloudData.set(data);
+
+        // 2. 尝试更新（如果此时场景已存在）
+        updateDynamicPointClouds(data);
+    }
+
+    function initViewer() {
+        scene = new THREE.Scene();
+
+        camera = new THREE.PerspectiveCamera(
+            60,
+            viewerDiv.clientWidth / viewerDiv.clientHeight,
+            0.1,
+            100000
+        );
+
+        camera.position.set(0,0,800);
+
+        renderer = new THREE.WebGLRenderer({antialias:true});
+        renderer.setSize(viewerDiv.clientWidth,viewerDiv.clientHeight);
+
+        viewerDiv.innerHTML="";
+        viewerDiv.appendChild(renderer.domElement);
+
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        const axes = new THREE.AxesHelper(200);
+        scene.add(axes);
+
+        animate();
+    }
+
+    function renderPointCloud(cloudA, weldA, cloudB, weldB){
+
+        if(cloudObj) scene.remove(cloudObj);
+        if(weldLine) scene.remove(weldLine);
+
+        // ========= A点云 =========
+
+        const posA = new Float32Array(cloudA.length * 3);
+
+        for(let i=0;i<cloudA.length;i++){
+
+            posA[i*3]   = cloudA[i].x;
+            posA[i*3+1] = cloudA[i].y;
+            posA[i*3+2] = cloudA[i].z;
+
+        }
+
+        const geoA = new THREE.BufferGeometry();
+        geoA.setAttribute(
+            "position",
+            new THREE.BufferAttribute(posA,3)
+        );
+
+        const matA = new THREE.PointsMaterial({
+            size:pointSize,
+            color:0xffffff
+        });
+
+        const cloudObjA = new THREE.Points(geoA,matA);
+        scene.add(cloudObjA);
+
+
+        // ========= B点云 =========
+
+        const posB = new Float32Array(cloudB.length * 3);
+
+        for(let i=0;i<cloudB.length;i++){
+
+            posB[i*3]   = cloudB[i].x;
+            posB[i*3+1] = cloudB[i].y;
+            posB[i*3+2] = cloudB[i].z;
+
+        }
+
+        const geoB = new THREE.BufferGeometry();
+        geoB.setAttribute(
+            "position",
+            new THREE.BufferAttribute(posB,3)
+        );
+
+        const matB = new THREE.PointsMaterial({
+            size:pointSize,
+            color:0x00aaff
+        });
+
+        const cloudObjB = new THREE.Points(geoB,matB);
+        scene.add(cloudObjB);
+
+
+        // ========= A焊缝 =========
+
+        const weldPtsA = new Float32Array(weldA.length * 3);
+
+        for(let i=0;i<weldA.length;i++){
+
+            weldPtsA[i*3]   = weldA[i].x;
+            weldPtsA[i*3+1] = weldA[i].y;
+            weldPtsA[i*3+2] = weldA[i].z;
+
+        }
+
+        const weldGeoA = new THREE.BufferGeometry();
+
+        weldGeoA.setAttribute(
+            "position",
+            new THREE.BufferAttribute(weldPtsA,3)
+        );
+
+        const weldLineA = new THREE.Line(
+            weldGeoA,
+            new THREE.LineBasicMaterial({color:0xff0000})
+        );
+
+        scene.add(weldLineA);
+
+
+        // ========= B焊缝 =========
+
+        const weldPtsB = new Float32Array(weldB.length * 3);
+
+        for(let i=0;i<weldB.length;i++){
+
+            weldPtsB[i*3]   = weldB[i].x;
+            weldPtsB[i*3+1] = weldB[i].y;
+            weldPtsB[i*3+2] = weldB[i].z;
+
+        }
+
+        const weldGeoB = new THREE.BufferGeometry();
+
+        weldGeoB.setAttribute(
+            "position",
+            new THREE.BufferAttribute(weldPtsB,3)
+        );
+
+        const weldLineB = new THREE.Line(
+            weldGeoB,
+            new THREE.LineBasicMaterial({color:0x00ff00})
+        );
+
+        scene.add(weldLineB);
+
+
+        // 自动居中
+        autoCenter(posA);
+    }
+
+    function autoCenter(points){
+        const box = new THREE.Box3();
+
+        for(let i=0;i<points.length;i+=3){
+
+            box.expandByPoint(
+                new THREE.Vector3(
+                    points[i],
+                    points[i+1],
+                    points[i+2]
+                )
+            );
+
+        }
+
+        const center = box.getCenter(new THREE.Vector3());
+
+        controls.target.copy(center);
+        controls.update();
+    }
+
+    function updatePointSize(){
+
+        if(cloudObj){
+
+            cloudObj.material.size = pointSize;
+            cloudObj.material.needsUpdate = true;
+
+        }
+    }
+
+    function animate(){
+
+        requestAnimationFrame(animate);
+
+        if(controls) controls.update();
+
+        if(renderer && scene && camera){
+            renderer.render(scene, camera);
+        }
+    }
 
     let toastMessage = "";
     let showToast = false;
@@ -260,7 +488,14 @@
                     点云获取
                 </button>
 
-                <button 
+                <button
+                        class="btn btn-secondary btn-sm h-12"
+                        on:click={showPointCloud}
+                >
+                    点云及焊缝显示
+                </button>
+
+                <button
                     class="btn btn-accent btn-sm h-12"
                     on:click={startWeld}>
                     一键焊接
@@ -278,3 +513,47 @@
         </div>
     </div>
 </div>
+
+{#if showPointViewer}
+
+    <div class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[200]">
+
+        <div class="bg-base-100 rounded-xl shadow-xl w-[1100px] h-[700px] relative flex flex-col">
+
+            <div class="flex justify-between items-center p-3 border-b">
+
+                <span class="font-bold">点云与焊缝显示</span>
+
+                <div class="flex items-center gap-3">
+
+                    <label class="text-sm">点大小</label>
+
+                    <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            bind:value={pointSize}
+                            on:input={updatePointSize}
+                    />
+
+                    <button
+                            class="btn btn-sm btn-error"
+                            on:click={() => showPointViewer=false}
+                    >
+                        关闭
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div
+                    bind:this={viewerDiv}
+                    class="flex-1"
+            ></div>
+
+        </div>
+
+    </div>
+
+{/if}

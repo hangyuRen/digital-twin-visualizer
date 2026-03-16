@@ -13,7 +13,7 @@
   export let chartB: any = null;
 
   // 控制界面显示的变量
-  let activeTab: 'robot' | 'monitor' = 'robot';
+  let activeTab: 'robot' | 'monitor' = 'monitor';
 
     // 点云面板折叠状态
   let leftCollapsed = false;
@@ -76,14 +76,14 @@
       <Interface bind:jointInfos bind:selectedUpAxis />
       <Scene {jointInfos} {selectedUpAxis} />
          <!-- 左侧点云展示框 -->
-    <div class="pc-slot pc-left" class:collapsed={leftCollapsed}>
-      <PointCloudPanel title="左侧管道点云" bind:collapsed={leftCollapsed} />
-    </div>
+<!--    <div class="pc-slot pc-left" class:collapsed={leftCollapsed}>-->
+<!--      <PointCloudPanel title="左侧管道点云" bind:collapsed={leftCollapsed} />-->
+<!--    </div>-->
 
-    <!-- 右侧点云展示框 -->
-    <div class="pc-slot pc-right" class:collapsed={rightCollapsed}>
-      <PointCloudPanel title="右侧管道点云" bind:collapsed={rightCollapsed} />
-    </div>
+<!--    &lt;!&ndash; 右侧点云展示框 &ndash;&gt;-->
+<!--    <div class="pc-slot pc-right" class:collapsed={rightCollapsed}>-->
+<!--      <PointCloudPanel title="右侧管道点云" bind:collapsed={rightCollapsed} />-->
+<!--    </div>-->
     </div>
   {:else}
     <Monitor bind:chartA bind:chartB/>
