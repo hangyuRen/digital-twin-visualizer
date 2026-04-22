@@ -240,8 +240,14 @@
     export let chartB: any;
 
     // 管道参数
-    let pipeDiameter: string = "";
-    let pipeThickness: string = "";
+    let pipeDiameter: string = "300";
+    let pipeThickness: string = "5";
+    let current: string = "140";
+    let voltage: string = "20";
+    let speed: string = "4";
+    let frequency: string = "2.0";
+    let vibrateFrequency: string = "7";
+    let stayTime: string = "0.2";
 
     // 连接机械臂函数
     async function connectRobots() {
@@ -280,12 +286,13 @@
         }
 
         // 2. 检查参数完整性
-        if (!pipeDiameter || !pipeThickness) {
-            toastMessage = "请先输入管道直径和厚度参数";
+        if (!pipeDiameter || !pipeThickness || !current || !voltage || !speed) {
+            toastMessage = "请完整输入工艺参数";
             showToast = true;
             setTimeout(() => showToast = false, 3000);
             return;
         }
+
         const canvas = document.createElement("canvas");
         canvas.width = cam3Video.videoWidth;
         canvas.height = cam3Video.videoHeight;
@@ -330,7 +337,7 @@
                 headers: {
                     "Content-Type": "image/jpeg",
                     "X-Pipe-Diameter": pipeDiameter,
-                    "X-Pipe-Thickness": pipeThickness
+                    "X-Pipe-Thickness": pipeThickness,
                 },
                 body: blob
             });
@@ -356,7 +363,15 @@
     async function startWeld() {
         try {
             const res = await fetch("http://localhost:8082/weld", {
-                method: "GET"
+                method: "GET",
+                headers: {
+                    "X-Current": current,
+                    "X-Voltage": voltage,
+                    "X-Speed": speed,
+                    "X-Frequency": frequency,
+                    "X-Vibrate-Frequency": vibrateFrequency,
+                    "X-Stay-Time": stayTime
+                }
             });
 
             const data = await res.json();
@@ -401,7 +416,7 @@
 <div class="flex flex-col h-screen bg-base-300 p-4 gap-4 overflow-hidden">
     <h2 class="text-2xl font-bold text-center flex-none">焊接机器人监控面板</h2>
 
-    <div class="grid grid-cols-3 gap-4 h-[45%] flex-none">
+    <div class="grid grid-cols-3 gap-4 flex-[5] min-h-0">
         <!-- <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">HK Camera 1</div>
         <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">HK Camera 2</div> -->
         <!-- <div class="bg-black rounded-xl border-2 border-gray-700 flex items-center justify-center text-white">TP-Link Camera</div> -->
@@ -425,7 +440,7 @@
             class="bg-black rounded-xl border-2 border-gray-700 w-full h-full"
             allow="autoplay; fullscreen"
         ></iframe> -->
-        <div class="flex gap-4">
+        <div class="flex gap-4 min-w-0">
             <div class="flex-1 relative bg-black rounded-xl border-2 border-gray-700 overflow-hidden">
                 <video
                         bind:this={cam3Video}
@@ -441,10 +456,10 @@
                 ></canvas>
             </div>
 
-            <div class="w-32 flex flex-col gap-3 justify-center">
+            <div class="w-40 flex flex-col gap-2 justify-between py-1 overflow-y-auto">
                 <button
                         on:click={connectRobots}
-                        class="btn btn-outline btn-info btn-sm h-12"
+                        class="btn btn-outline btn-info btn-xs h-10 shrink-0"
                         disabled={isConnecting}
                 >
                     {#if isConnecting}
@@ -460,24 +475,43 @@
                     {/if}
                 </button>
 
-                <div class="flex flex-col gap-1">
-                    <div class="relative">
-                        <input
-                                type="number"
-                                placeholder="管道直径"
-                                bind:value={pipeDiameter}
-                                class="input input-bordered input-xs w-full pr-7 { !pipeDiameter && showToast ? 'input-error' : '' }"
-                        />
-                        <span class="absolute right-2 top-1 text-[10px] opacity-50">mm</span>
-                    </div>
-                    <div class="relative">
-                        <input
-                                type="number"
-                                placeholder="管道厚度"
-                                bind:value={pipeThickness}
-                                class="input input-bordered input-xs w-full pr-7 { !pipeThickness && showToast ? 'input-error' : '' }"
-                        />
-                        <span class="absolute right-2 top-1 text-[10px] opacity-50">mm</span>
+                <div class="flex flex-col gap-1 bg-base-200 p-2 rounded-lg border border-base-100 shrink-0">
+                    <span class="text-[10px] font-bold opacity-70 text-center">工艺/管道参数</span>
+
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1.5">
+                        <div class="flex flex-col">
+                            <span class="text-[9px] pl-1 opacity-60">直径(mm)</span>
+                            <input type="number" bind:value={pipeDiameter} class="input input-bordered input-xs w-full" />
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] pl-1 opacity-60">厚度(mm)</span>
+                            <input type="number" bind:value={pipeThickness} class="input input-bordered input-xs w-full" />
+                        </div>
+
+                        <div class="flex flex-col">
+                            <span class="text-[9px] pl-1 opacity-60">电流(A)</span>
+                            <input type="number" bind:value={current} class="input input-bordered input-xs w-full" />
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] pl-1 opacity-60">电压(V)</span>
+                            <input type="number" bind:value={voltage} class="input input-bordered input-xs w-full" />
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] pl-1 opacity-60">速度(m/h)</span>
+                            <input type="number" bind:value={speed} class="input input-bordered input-xs w-full" />
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] pl-1 opacity-60">频率(Hz)</span>
+                            <input type="number" bind:value={frequency} class="input input-bordered input-xs w-full" />
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] pl-1 opacity-60">摆频(Hz)</span>
+                            <input type="number" bind:value={vibrateFrequency} class="input input-bordered input-xs w-full" />
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] pl-1 opacity-60">停留(s)</span>
+                            <input type="number" bind:value={stayTime} class="input input-bordered input-xs w-full" />
+                        </div>
                     </div>
                 </div>
 
@@ -504,11 +538,11 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4 h-[45%] flex-none">
-        <div class="card bg-base-100 shadow-xl overflow-hidden">
+    <div class="grid grid-cols-2 gap-4 flex-[4] min-h-0">
+        <div class="card bg-base-100 shadow-xl overflow-hidden min-h-0 border border-base-content/10">
             <CurrentCharter bind:this={chartA} armName="焊接机械臂A" />
         </div>
-        <div class="card bg-base-100 shadow-xl overflow-hidden">
+        <div class="card bg-base-100 shadow-xl overflow-hidden min-h-0 border border-base-content/10">
             <CurrentCharter bind:this={chartB} armName="焊接机械臂B" />
         </div>
     </div>
