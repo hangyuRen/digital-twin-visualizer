@@ -22,7 +22,6 @@
     let pointSize = 2;
 
     async function showPointCloud() {
-
         showPointViewer = true;
 
         await tick();
@@ -73,141 +72,223 @@
         animate();
     }
 
-    function renderPointCloud(cloudA, weldA, cloudB, weldB){
+    // function renderPointCloud(cloudA, weldA, cloudB, weldB){
 
-        if(cloudObj) scene.remove(cloudObj);
-        if(weldLine) scene.remove(weldLine);
+    //     if(cloudObj) scene.remove(cloudObj);
+    //     if(weldLine) scene.remove(weldLine);
 
-        // ========= A点云 =========
+    //     // ========= A点云 =========
 
-        const posA = new Float32Array(cloudA.length * 3);
+    //     const posA = new Float32Array(cloudA.length * 3);
 
-        for(let i=0;i<cloudA.length;i++){
+    //     for(let i=0;i<cloudA.length;i++){
 
-            posA[i*3]   = cloudA[i].x;
-            posA[i*3+1] = cloudA[i].y;
-            posA[i*3+2] = cloudA[i].z;
+    //         posA[i*3]   = cloudA[i].x;
+    //         posA[i*3+1] = cloudA[i].y;
+    //         posA[i*3+2] = cloudA[i].z;
 
+    //     }
+
+    //     const geoA = new THREE.BufferGeometry();
+    //     geoA.setAttribute(
+    //         "position",
+    //         new THREE.BufferAttribute(posA,3)
+    //     );
+
+    //     const matA = new THREE.PointsMaterial({
+    //         size:pointSize,
+    //         color:0xffffff
+    //     });
+
+    //     const cloudObjA = new THREE.Points(geoA,matA);
+    //     scene.add(cloudObjA);
+
+
+    //     // ========= B点云 =========
+
+    //     const posB = new Float32Array(cloudB.length * 3);
+
+    //     for(let i=0;i<cloudB.length;i++){
+
+    //         posB[i*3]   = cloudB[i].x;
+    //         posB[i*3+1] = cloudB[i].y;
+    //         posB[i*3+2] = cloudB[i].z;
+
+    //     }
+
+    //     const geoB = new THREE.BufferGeometry();
+    //     geoB.setAttribute(
+    //         "position",
+    //         new THREE.BufferAttribute(posB,3)
+    //     );
+
+    //     const matB = new THREE.PointsMaterial({
+    //         size:pointSize,
+    //         color:0x00aaff
+    //     });
+
+    //     const cloudObjB = new THREE.Points(geoB,matB);
+    //     scene.add(cloudObjB);
+
+
+    //     // ========= A焊缝 =========
+
+    //     const weldPtsA = new Float32Array(weldA.length * 3);
+
+    //     for(let i=0;i<weldA.length;i++){
+
+    //         weldPtsA[i*3]   = weldA[i].x;
+    //         weldPtsA[i*3+1] = weldA[i].y;
+    //         weldPtsA[i*3+2] = weldA[i].z;
+
+    //     }
+
+    //     const weldGeoA = new THREE.BufferGeometry();
+
+    //     weldGeoA.setAttribute(
+    //         "position",
+    //         new THREE.BufferAttribute(weldPtsA,3)
+    //     );
+
+    //     const weldLineA = new THREE.Line(
+    //         weldGeoA,
+    //         new THREE.LineBasicMaterial({color:0xff0000})
+    //     );
+
+    //     scene.add(weldLineA);
+
+
+    //     // ========= B焊缝 =========
+
+    //     const weldPtsB = new Float32Array(weldB.length * 3);
+
+    //     for(let i=0;i<weldB.length;i++){
+
+    //         weldPtsB[i*3]   = weldB[i].x;
+    //         weldPtsB[i*3+1] = weldB[i].y;
+    //         weldPtsB[i*3+2] = weldB[i].z;
+
+    //     }
+
+    //     const weldGeoB = new THREE.BufferGeometry();
+
+    //     weldGeoB.setAttribute(
+    //         "position",
+    //         new THREE.BufferAttribute(weldPtsB,3)
+    //     );
+
+    //     const weldLineB = new THREE.Line(
+    //         weldGeoB,
+    //         new THREE.LineBasicMaterial({color:0x00ff00})
+    //     );
+
+    //     scene.add(weldLineB);
+
+
+    //     // 自动居中
+    //     autoCenter(posA);
+    // }
+
+    function renderPointCloud(cloudA, weldA, cloudB, weldB) {
+        // --- 1. 数据清洗与容错 ---
+        // 确保传进来的参数至少是空数组，而不是 undefined
+        // 这样后面的 .length 和 .forEach 永远不会报错
+        const safeCloudA = Array.isArray(cloudA) ? cloudA : [];
+        const safeWeldA = Array.isArray(weldA) ? weldA : [];
+        const safeCloudB = Array.isArray(cloudB) ? cloudB : [];
+        const safeWeldB = Array.isArray(weldB) ? cloudB : []; // 修复了这里的笔误
+
+        // --- 2. 渲染逻辑 ---
+        // 既然不想新增变量，我们直接用 IIFE (立即执行函数) 或者简单的 if 包裹
+        // A点云 (白色)
+        if (safeCloudA.length > 0) {
+            const pos = new Float32Array(safeCloudA.length * 3);
+            safeCloudA.forEach((p, i) => {
+            pos[i*3] = p.x; pos[i*3+1] = p.y; pos[i*3+2] = p.z;
+            });
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({ size: pointSize, color: 0xffffff });
+            scene.add(new THREE.Points(geo, mat));
         }
 
-        const geoA = new THREE.BufferGeometry();
-        geoA.setAttribute(
-            "position",
-            new THREE.BufferAttribute(posA,3)
-        );
-
-        const matA = new THREE.PointsMaterial({
-            size:pointSize,
-            color:0xffffff
-        });
-
-        const cloudObjA = new THREE.Points(geoA,matA);
-        scene.add(cloudObjA);
-
-
-        // ========= B点云 =========
-
-        const posB = new Float32Array(cloudB.length * 3);
-
-        for(let i=0;i<cloudB.length;i++){
-
-            posB[i*3]   = cloudB[i].x;
-            posB[i*3+1] = cloudB[i].y;
-            posB[i*3+2] = cloudB[i].z;
-
+        // B点云 (蓝色)
+        if (safeCloudB.length > 0) {
+            const pos = new Float32Array(safeCloudB.length * 3);
+            safeCloudB.forEach((p, i) => {
+            pos[i*3] = p.x; pos[i*3+1] = p.y; pos[i*3+2] = p.z;
+            });
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({ size: pointSize, color: 0x00aaff });
+            scene.add(new THREE.Points(geo, mat));
         }
 
-        const geoB = new THREE.BufferGeometry();
-        geoB.setAttribute(
-            "position",
-            new THREE.BufferAttribute(posB,3)
-        );
-
-        const matB = new THREE.PointsMaterial({
-            size:pointSize,
-            color:0x00aaff
-        });
-
-        const cloudObjB = new THREE.Points(geoB,matB);
-        scene.add(cloudObjB);
-
-
-        // ========= A焊缝 =========
-
-        const weldPtsA = new Float32Array(weldA.length * 3);
-
-        for(let i=0;i<weldA.length;i++){
-
-            weldPtsA[i*3]   = weldA[i].x;
-            weldPtsA[i*3+1] = weldA[i].y;
-            weldPtsA[i*3+2] = weldA[i].z;
-
+        // A焊缝 (红色)
+        if (safeWeldA.length > 0) {
+            const pos = new Float32Array(safeWeldA.length * 3);
+            safeWeldA.forEach((p, i) => {
+            pos[i*3] = p.x; pos[i*3+1] = p.y; pos[i*3+2] = p.z;
+            });
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({color: 0xff0000}));
+            scene.add(line);
         }
 
-        const weldGeoA = new THREE.BufferGeometry();
-
-        weldGeoA.setAttribute(
-            "position",
-            new THREE.BufferAttribute(weldPtsA,3)
-        );
-
-        const weldLineA = new THREE.Line(
-            weldGeoA,
-            new THREE.LineBasicMaterial({color:0xff0000})
-        );
-
-        scene.add(weldLineA);
-
-
-        // ========= B焊缝 =========
-
-        const weldPtsB = new Float32Array(weldB.length * 3);
-
-        for(let i=0;i<weldB.length;i++){
-
-            weldPtsB[i*3]   = weldB[i].x;
-            weldPtsB[i*3+1] = weldB[i].y;
-            weldPtsB[i*3+2] = weldB[i].z;
-
+        // B焊缝 (绿色)
+        if (safeWeldB.length > 0) {
+            const pos = new Float32Array(safeWeldB.length * 3);
+            safeWeldB.forEach((p, i) => {
+            pos[i*3] = p.x; pos[i*3+1] = p.y; pos[i*3+2] = p.z;
+            });
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({color: 0x00ff00}));
+            scene.add(line);
         }
 
-        const weldGeoB = new THREE.BufferGeometry();
-
-        weldGeoB.setAttribute(
-            "position",
-            new THREE.BufferAttribute(weldPtsB,3)
-        );
-
-        const weldLineB = new THREE.Line(
-            weldGeoB,
-            new THREE.LineBasicMaterial({color:0x00ff00})
-        );
-
-        scene.add(weldLineB);
-
-
-        // 自动居中
-        autoCenter(posA);
+        // --- 3. 自动居中（关键修复）---
+        // 优先用 A，再用 B，都没有就不居中
+        // 注意：这里传入的是原始对象数组，不是 Float32Array
+        if (safeCloudA.length > 0) {
+            autoCenter(safeCloudA); // 调用上面修复后的函数
+        } else if (safeCloudB.length > 0) {
+            autoCenter(safeCloudB);
+        }
+        // 如果都没有点云，但有焊缝
+        else if (safeWeldA.length > 0) {
+            autoCenter(safeWeldA);
+        } else if (safeWeldB.length > 0) {
+            autoCenter(safeWeldB);
+        }
     }
 
-    function autoCenter(points){
+    function autoCenter(data) {
+        // 1. 防御性编程：检查数据是否存在
+        if (!data || data.length === 0) return;
+
         const box = new THREE.Box3();
 
-        for(let i=0;i<points.length;i+=3){
+        // 2. 注意：这里的 data 是后端传回的原始对象数组，不是 Float32Array
+        // 所以不能用 for(i*3)，必须用 forEach 遍历对象
+        data.forEach(point => {
+            // 3. 确保 point 存在且有 x, y, z 属性
+            if (point && point.x !== undefined) {
+            box.expandByPoint(new THREE.Vector3(point.x, point.y, point.z));
+            }
+        });
 
-            box.expandByPoint(
-                new THREE.Vector3(
-                    points[i],
-                    points[i+1],
-                    points[i+2]
-                )
-            );
-
-        }
+        // 4. 如果数据全是无效点，box 会是空的，getCenter 会报错
+        if (box.isEmpty()) return;
 
         const center = box.getCenter(new THREE.Vector3());
-
         controls.target.copy(center);
+
+        // 5. 关键：调整相机距离
+        // 你的数据 Z 值很小（约6），但相机在 Z=800
+        // 我们需要把相机拉近一点，或者强制更新 controls
+        camera.position.set(center.x, center.y, center.z + 500); // 拉近到物体前方500单位
         controls.update();
     }
 
