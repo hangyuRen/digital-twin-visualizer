@@ -60,7 +60,7 @@
   a two way binding, which means the child component will also update the `props`
   in the parent component.
 -->
-<div class="fixed top-4 right-4 z-[100]">
+<div class="fixed top-4 left-4 z-[100]">
   <button class="btn btn-primary shadow-lg" on:click={toggleView}>
     {#if activeTab === 'robot'}
       进入监控看板 →
