@@ -663,21 +663,42 @@
             setTimeout(() => showToast = false, 3000);
             return;
         }
+
+        if (!cam3Video || !cam3Video.videoWidth) {
+            toastMessage = "视频尚未就绪";
+            showToast = true;
+            setTimeout(() => showToast = false, 3000);
+            return;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = cam3Video.videoWidth;
+        canvas.height = cam3Video.videoHeight;
+        canvas.getContext("2d").drawImage(cam3Video, 0, 0);
+
+        const blob = await new Promise<Blob | null>(resolve =>
+            canvas.toBlob(resolve, "image/jpeg", 0.9)
+        );
+
+        if (!blob) {
+            toastMessage = "截图失败";
+            showToast = true;
+            setTimeout(() => showToast = false, 3000);
+            return;
+        }
+
         isSubmittingManual = true;
         try {
             const res = await fetch("http://localhost:8082/detect/manual", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    "Content-Type": "image/jpeg",
                     "X-Pipe-Diameter": pipeDiameter,
                     "X-Pipe-Thickness": pipeThickness,
+                    "X-Pixel-X": String(selectedPixel.x),
+                    "X-Pixel-Y": String(selectedPixel.y),
                 },
-                body: JSON.stringify({
-                    x: selectedPixel.x,
-                    y: selectedPixel.y,
-                    imageWidth: capturedImage?.width ?? 0,
-                    imageHeight: capturedImage?.height ?? 0,
-                }),
+                body: blob,
             });
             const data = await res.json().catch(() => ({}));
             if (res.ok && data.status !== "fail") {
